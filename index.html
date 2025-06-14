@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Chess</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #1A202C;
+        color: #E2E8F0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-text-size-adjust: none;
+        text-size-adjust: none;
+    }
+    #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1A202C;
+        background-image: url('loading-background.jpg');
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+    }
+    #loading-screen.hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+    .loading-heading {
+        font-size: 3.5rem;
+        font-weight: bold;
+        color: #388EE6;
+        margin-bottom: 40px;
+        text-shadow: 0 0 15px rgba(56, 142, 230, 0.8);
+    }
+    .loading-bar-container {
+        width: 60%;
+        max-width: 400px;
+        height: 10px;
+        background-color: #334155;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+    .loading-bar {
+        width: 0%;
+        height: 100%;
+        background-image: linear-gradient(to right, #388EE6, #388EE6);
+        border-radius: 5px;
+        animation: fillBar 3s forwards;
+    }
+    @keyframes fillBar {
+        from { width: 0%; }
+        to { width: 100%; }
+    }
+    .designed-by-text {
+        font-size: 1.2rem;
+        color: #94A3B8;
+        margin-top: 10px;
+    }
+    #orientation-message {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        width: 100vw;
+        text-align: center;
+        font-size: 1.5rem;
+        padding: 20px;
+        box-sizing: border-box;
+        color: #94A3B8;
+    }
+    #game-content {
+        display: flex;
+        width: 100vw;
+        min-height: 100vh;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+    }
+    #game-content.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+    #board-container {
+        width: 95vw;
+        height: auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+        margin-top: 50px;
+    }
+    .chess-board {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        width: min(90vh, 90vw);
+        height: min(90vh, 90vw);
+        aspect-ratio: 1 / 1;
+        border: none;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .right-panel {
+        width: 100%;
+        height: auto;
+        background-color: #1E293B;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        flex-shrink: 0;
+        box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.2);
+        margin-top: 0;
+    }
+    .right-top-section {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    .right-bottom-section {
+        width: 100%;
+        margin-top: 20px;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .timer-display {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        font-size: clamp(1.5rem, 5vmin, 2.5rem);
+        font-weight: bold;
+        color: #2B6CB0;
+        text-shadow: 0 0 8px rgba(43, 108, 176, 0.6);
+        background-color: #334155;
+        padding: 8px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    .timer {
+        text-align: center;
+    }
+    .timer.active {
+        color: #388EE6;
+        text-shadow: 0 0 10px rgba(43, 108, 176, 0.8);
+    }
+    .status-bar {
+        font-size: clamp(1rem, 3vmin, 1.1rem);
+        font-weight: bold;
+        text-align: center;
+        min-height: 25px;
+        word-wrap: break-word;
+        color: #E2E8F0;
+    }
+    .status-bar.text-green-400 { color: #E0F2F7; }
+    .status-bar.text-blue-400 { color: #48BB78; }
+    .status-bar.text-yellow-400 { color: #2B6CB0; }
+    .status-bar.text-red-500 { color: #EF4444; }
+    .status-bar.text-red-400 { color: #F87171; }
+    .start-button {
+        padding: 12px 25px;
+        font-size: clamp(1.1rem, 3vmin, 1.1rem);
+        font-weight: bold;
+        border-radius: 9999px;
+        background-image: linear-gradient(to right, #2B6CB0, #388EE6);
+        color: #E2E8F0;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        width: 80%;
+        max-width: 250px;
+    }
+    .start-button:hover {
+        background-image: linear-gradient(to right, #388EE6, #1A528A);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+    }
+    .start-button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .button-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        width: 90%;
+        align-items: center;
+        margin-top: auto;
+        padding: 0 5px;
+        box-sizing: border-box;
+    }
+    .button {
+        padding: 8px 12px;
+        font-size: clamp(0.7rem, 2vmin, 0.8rem);
+        font-weight: bold;
+        border-radius: 9999px;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background-image: linear-gradient(to right, #374151, #4B5563);
+        color: #E2E8F0;
+        border: none;
+        cursor: pointer;
+        outline: none;
+        width: 100%;
+        max-width: none;
+        text-align: center;
+    }
+    .button:hover {
+        background-image: linear-gradient(to right, #4B5563, #6B7280);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+    }
+    .button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .square {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 4vmin;
+        cursor: default;
+        user-select: none;
+        transition: background-color 0.2s ease, border 0.2s ease;
+        position: relative;
+    }
+    .square.light { background-color: #E0F2F7; }
+    .square.dark { background-color: #2B6CB0; }
+    .square.selected {
+        background-color: #48BB78;
+        animation: pulse-selected 0.8s infinite alternate;
+    }
+    @keyframes pulse-selected {
+        from { box-shadow: 0 0 5px 2px rgba(72, 187, 120, 0.5); }
+        to { box-shadow: 0 0 15px 5px rgba(72, 187, 120, 0.8); }
+    }
+    .square.possible-move {
+        background-color: #48BB78;
+        border: none;
+        transition: background-color 0.2s ease-out;
+    }
+    .square.possible-move:hover {
+        background-color: #38A169;
+    }
+    .square.attack-move {
+        background-color: #E53E3E;
+        border: none;
+        transition: background-color 0.2s ease-out;
+    }
+    .square.attack-move:hover {
+        background-color: #EF4444;
+    }
+    .piece {
+        font-size: 11vmin;
+        line-height: 1;
+        cursor: default;
+        position: absolute;
+        transition: transform 0.3s ease-in-out;
+    }
+    .piece.white {
+        color: #F8FAFC;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
+    }
+    .piece.black {
+        color: #1A202C;
+        text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
+    }
+    @media (orientation: landscape) {
+        #orientation-message {
+            display: none;
+        }
+        #game-content {
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        #board-container {
+            width: 70vw;
+            height: 100vh;
+            margin-top: 0;
+        }
+        .chess-board {
+            width: min(calc(100vh - 40px), calc(70vw - 40px));
+            height: min(calc(100vh - 40px), calc(70vw - 40px));
+        }
+        .right-panel {
+            width: 30vw;
+            min-width: 250px;
+            height: 100vh;
+            justify-content: space-between;
+            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.2);
+            margin-top: 0;
+        }
+        .right-top-section {
+            gap: 20px;
+        }
+        .right-bottom-section {
+            margin-bottom: 20px;
+            margin-top: auto;
+        }
+        .timer-display {
+            font-size: clamp(1.8rem, 6vmin, 3rem);
+            padding: 10px 20px;
+        }
+        .status-bar {
+            font-size: clamp(1.2rem, 3.5vmin, 1.2rem);
+            min-height: 30px;
+        }
+        .start-button {
+            padding: 15px 30px;
+            font-size: clamp(1.2rem, 3.5vmin, 1.2rem);
+            width: 90%;
+            max-width: 300px;
+        }
+        .button-group {
+            gap: 10px;
+            width: 100%;
+            padding: 0 10px;
+        }
+        .button {
+            padding: 10px 15px;
+            font-size: clamp(0.8rem, 2.2vmin, 0.9rem);
+        }
+    }
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+    .modal-content {
+        background-color: #1E293B;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        color: #E2E8F0;
+        transform: translateY(-20px);
+        opacity: 0;
+        animation: fadeInSlideUp 0.3s ease-out forwards;
+    }
+    .modal-content h3 {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+        color: #48BB78;
+    }
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 25px;
+    }
+    .modal-button {
+        padding: 12px 25px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-radius: 9999px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    .modal-button.yes {
+        background-image: linear-gradient(to right, #48BB78, #38A169);
+        color: white;
+    }
+    .modal-button.yes:hover {
+        background-image: linear-gradient(to right, #38A169, #2F855A);
+        transform: translateY(-2px);
+    }
+    .modal-button.yes:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .modal-button.no {
+        background-image: linear-gradient(to right, #EF4444, #DC2626);
+        color: white;
+    }
+    .modal-button.no:hover {
+        background-image: linear-gradient(to right, #DC2626, #B91C1C);
+        transform: translateY(-2px);
+    }
+    .modal-button.no:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    @keyframes fadeInSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <div id="loading-screen">
+        <div class="loading-heading">AI Chess</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar"></div>
+        </div>
+        <div class="designed-by-text">Designed and Developed by Mayur Kumar</div>
+    </div>
+    <div id="orientation-message">
+        <p>This message is not expected to be seen normally in this version.</p>
+    </div>
+    <div id="game-content">
+        <div id="board-container">
+            <div id="chess-board" class="chess-board"></div>
+        </div>
+        <div class="right-panel">
+            <div class="right-top-section">
+                <div class="timer-display">
+                    <div id="white-timer" class="timer active">10:00</div>
+                </div>
+                <div id="status" class="status-bar text-green-400">Press Start to Play</div>
+                <button id="start-game-button" class="start-button">Start Game</button>
+            </div>
+            <div class="right-bottom-section">
+                <div class="button-group">
+                    <button id="undo-button" class="button" disabled>Undo Move</button>
+                    <button id="draw-button" class="button" disabled>Offer Draw</button>
+                    <button id="reset-button" class="button" disabled>Reset Game</button>
+                    <button id="fullscreen-button" class="button">Go Fullscreen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="draw-offer-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-content">
+            <h3>Offer Draw?</h3>
+            <p>Do you want to offer a draw to your opponent?</p>
+            <div class="modal-buttons">
+                <button id="modal-yes-button" class="modal-button yes">Yes</button>
+                <button id="modal-no-button" class="modal-button no">No</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script>
+        const game = new Chess();
+        const boardElement = document.getElementById('chess-board');
+        const statusElement = document.getElementById('status');
+        const resetButton = document.getElementById('reset-button');
+        const drawButton = document.getElementById('draw-button');
+        const undoButton = document.getElementById('undo-button');
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const startGameButton = document.getElementById('start-game-button');
+        const whiteTimerElement = document.getElementById('white-timer');
+        const drawOfferModal = document.getElementById('draw-offer-modal');
+        const modalYesButton = document.getElementById('modal-yes-button');
+        const modalNoButton = document.getElementById('modal-no-button');
+        const loadingScreen = document.getElementById('loading-screen');
+        const gameContent = document.getElementById('game-content');
+        let selectedSquare = null;
+        let whiteTurn = true;
+        let gameOver = false;
+        let gameStarted = false;
+        let pausedTurn = null;
+        const initialTime = 10 * 60 * 1000;
+        let whiteTimeRemaining = initialTime;
+        let whiteTimerInterval;
+        let lastMoveTime;
+        const pieces = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♔'
+        };
+        const pieceValues = {
+            'p': 100, 'n': 320, 'b': 330, 'r': 500, 'q': 900, 'k': 20000
+        };
+        const Pst = {
+            'p': [
+                [0, 0, 0, 0, 0, 0, 0, 0], [50, 50, 50, 50, 50, 50, 50, 50],
+                [10, 10, 20, 30, 30, 20, 10, 10], [5, 5, 10, 25, 25, 10, 5, 5],
+                [0, 0, 0, 20, 20, 0, 0, 0], [5, -5, -10, 0, 0, -10, -5, 5],
+                [5, 10, 10, -20, -20, 10, 10, 5], [0, 0, 0, 0, 0, 0, 0, 0]
+            ],
+            'n': [
+                [-50, -40, -30, -30, -30, -30, -40, -50], [-40, -20, 0, 0, 0, 0, -20, -40],
+                [-30, 0, 10, 15, 15, 10, 0, -30], [-30, 5, 15, 20, 20, 15, 5, -30],
+                [-30, 0, 15, 20, 20, 15, 0, -30], [-30, 5, 10, 15, 15, 10, 5, -30],
+                [-40, -20, 0, 5, 5, 0, -20, -40], [-50, -40, -30, -30, -30, -30, -40, -50]
+            ],
+            'b': [
+                [-20, -10, -10, -10, -10, -10, -10, -20], [-10, 0, 0, 0, 0, 0, 0, -10],
+                [-10, 0, 5, 10, 10, 5, 0, -10], [-10, 5, 5, 10, 10, 5, 5, -10],
+                [-10, 0, 10, 10, 10, 10, 0, -10], [-10, 10, 10, 10, 10, 10, 10, -10],
+                [-10, 5, 0, 0, 0, 0, 5, -10], [-20, -10, -10, -10, -10, -10, -10, -20]
+            ],
+            'r': [
+                [0, 0, 0, 0, 0, 0, 0, 0], [5, 10, 10, 10, 10, 10, 10, 5],
+                [-5, 0, 0, 0, 0, 0, 0, -5], [-5, 0, 0, 0, 0, 0, 0, -5],
+                [-5, 0, 0, 0, 0, 0, 0, -5], [-5, 0, 0, 0, 0, 0, 0, -5],
+                [-5, 0, 0, 0, 0, 0, 0, -5], [0, 0, 0, 5, 5, 0, 0, 0]
+            ],
+            'q': [
+                [-20, -10, -10, -5, -5, -10, -10, -20], [-10, 0, 0, 0, 0, 0, 0, -10],
+                [-10, 0, 5, 5, 5, 5, 0, -10], [-5, 0, 5, 5, 5, 5, 0, -5],
+                [0, 0, 5, 5, 5, 5, 0, -5], [-10, 5, 5, 5, 5, 5, 0, -10],
+                [-10, 0, 5, 0, 0, 0, 0, -10], [-20, -10, -10, -5, -5, -10, -10, -20]
+            ],
+            'k': [
+                [-30, -40, -40, -50, -50, -40, -40, -30], [-30, -40, -40, -50, -50, -40, -40, -30],
+                [-30, -40, -40, -50, -50, -40, -40, -30], [-30, -40, -40, -50, -50, -40, -40, -30],
+                [-20, -30, -30, -40, -40, -30, -30, -20], [-10, -20, -20, -20, -20, -20, -20, -10],
+                [20, 20, 0, 0, 0, 0, 20, 20], [20, 30, 10, 0, 0, 10, 30, 20]
+            ]
+        };
+        function formatTime(ms) {
+            const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        function startWhiteTimer() {
+            stopWhiteTimer();
+            lastMoveTime = Date.now();
+            whiteTimerElement.classList.add('active');
+            whiteTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const elapsed = now - lastMoveTime;
+                whiteTimeRemaining -= elapsed;
+                lastMoveTime = now;
+                updateTimerDisplay();
+                if (whiteTimeRemaining <= 0) {
+                    gameOver = true;
+                    stopWhiteTimer();
+                    statusElement.innerText = "Game over, White ran out of time! Black wins!";
+                    statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-yellow-400');
+                    statusElement.classList.add('text-red-500');
+                    disableBoardClicks();
+                    disableButtons();
+                }
+            }, 1000);
+        }
+        function stopWhiteTimer() {
+            clearInterval(whiteTimerInterval);
+            whiteTimerInterval = null;
+            whiteTimerElement.classList.remove('active');
+        }
+        function updateTimerDisplay() {
+            whiteTimerElement.innerText = formatTime(whiteTimeRemaining);
+        }
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            const board = game.board();
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const square = document.createElement('div');
+                    const rank = 8 - i;
+                    const file = String.fromCharCode(97 + j);
+                    const squareName = file + rank;
+                    const isLight = (i + j) % 2 === 0;
+                    square.classList.add('square', isLight ? 'light' : 'dark');
+                    square.dataset.square = squareName;
+                    const piece = board[i][j];
+                    if (piece) {
+                        const pieceElement = document.createElement('span');
+                        pieceElement.classList.add('piece', piece.color === 'w' ? 'white' : 'black');
+                        pieceElement.innerHTML = pieces[piece.type.toLowerCase()];
+                        square.appendChild(pieceElement);
+                    }
+                    boardElement.appendChild(square);
+                }
+            }
+            updateStatus();
+            updateUndoButtonState();
+        }
+        function updateStatus() {
+            let status = '';
+            if (game.in_checkmate()) {
+                gameOver = true;
+                status = `Game over, ${game.turn() === 'w' ? 'Black' : 'White'} wins by checkmate!`;
+                statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-yellow-400');
+                statusElement.classList.add('text-red-500');
+                disableBoardClicks();
+                stopWhiteTimer();
+                disableButtons();
+            } else if (game.in_draw()) {
+                gameOver = true;
+                if (game.in_stalemate()) {
+                    status = 'Game over, draw by stalemate!';
+                } else if (game.in_threefold_repetition()) {
+                    status = 'Game over, draw by threefold repetition!';
+                } else if (game.in_fifty_move_draw()) {
+                    status = 'Game over, draw by 50-move rule!';
+                } else if (game.insufficient_material()) {
+                    status = 'Game over, draw by insufficient material!';
+                } else {
+                    status = 'Game over, draw!';
+                }
+                statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-red-400');
+                statusElement.classList.add('text-yellow-400');
+                disableBoardClicks();
+                stopWhiteTimer();
+                disableButtons();
+            } else if (gameStarted) {
+                status = `${whiteTurn ? 'White' : 'Black'}'s turn`;
+                if (game.in_check()) {
+                    status += (whiteTurn ? ' (check!(White))' : ' (check!(Black))');
+                    statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-yellow-400');
+                    statusElement.classList.add('text-red-400');
+                } else {
+                    statusElement.classList.remove('text-red-500', 'text-yellow-400', 'text-blue-400', 'text-red-400');
+                    statusElement.classList.add('text-green-400');
+                }
+            } else {
+                 status = "Press Start to Play";
+                 statusElement.classList.remove('text-red-500', 'text-yellow-400', 'text-blue-400', 'text-red-400');
+                 statusElement.classList.add('text-green-400');
+            }
+            statusElement.innerText = status;
+        }
+        function attachSquareEventListeners() {
+            document.querySelectorAll('.square').forEach(square => {
+                square.removeEventListener('click', handleSquareClick);
+                if (!gameOver && gameStarted) {
+                    square.addEventListener('click', handleSquareClick);
+                }
+            });
+        }
+        function handleSquareClick(event) {
+            if (gameOver || !gameStarted) return;
+            const clickedSquare = event.currentTarget;
+            const squareName = clickedSquare.dataset.square;
+            if (selectedSquare) {
+                const fromSquare = selectedSquare.dataset.square;
+                const toSquare = squareName;
+                let promotion = 'q';
+                const pieceOnFrom = game.get(fromSquare);
+                if (pieceOnFrom && pieceOnFrom.type === 'p' && pieceOnFrom.color === 'w' && toSquare[1] === '8') {
+                }
+                const move = game.move({
+                    from: fromSquare,
+                    to: toSquare,
+                    promotion: promotion
+                });
+                if (move) {
+                    whiteTurn = false;
+                    renderBoard();
+                    clearHighlights();
+                    stopWhiteTimer();
+                    updateUndoButtonState();
+                    setTimeout(makeAIMove, 500);
+                } else {
+                    const newClickedPiece = game.get(squareName);
+                    if (newClickedPiece && newClickedPiece.color === 'w' && whiteTurn) {
+                        selectedSquare = clickedSquare;
+                        highlightPossibleMoves(squareName);
+                    } else {
+                         selectedSquare = null;
+                         clearHighlights();
+                    }
+                }
+            } else {
+                const piece = game.get(squareName);
+                if (piece && piece.color === 'w' && whiteTurn) {
+                    selectedSquare = clickedSquare;
+                    highlightPossibleMoves(squareName);
+                }
+            }
+        }
+        function highlightPossibleMoves(squareName) {
+            clearHighlights();
+            const moves = game.moves({
+                square: squareName,
+                verbose: true
+            });
+            document.querySelector(`[data-square="${squareName}"]`).classList.add('selected');
+            moves.forEach(move => {
+                const targetSquare = document.querySelector(`[data-square="${move.to}"]`);
+                if (targetSquare) {
+                    if (move.flags.includes('c') || move.flags.includes('e')) {
+                        targetSquare.classList.add('attack-move');
+                    } else {
+                        targetSquare.classList.add('possible-move');
+                    }
+                }
+            });
+        }
+        function clearHighlights() {
+            document.querySelectorAll('.square').forEach(square => {
+                square.classList.remove('selected', 'possible-move', 'attack-move');
+            });
+        }
+        function disableBoardClicks() {
+            document.querySelectorAll('.square').forEach(square => {
+                square.removeEventListener('click', handleSquareClick);
+                square.style.cursor = 'default';
+            });
+             document.querySelectorAll('.piece').forEach(piece => {
+                piece.style.cursor = 'default';
+            });
+        }
+        function enableBoardClicks() {
+            attachSquareEventListeners();
+            document.querySelectorAll('.square').forEach(square => {
+                square.style.cursor = 'pointer';
+            });
+            document.querySelectorAll('.piece').forEach(piece => {
+                const squareName = piece.parentElement.dataset.square;
+                const pieceOnSquare = game.get(squareName);
+                if (pieceOnSquare && pieceOnSquare.color === 'w') {
+                    piece.style.cursor = 'grab';
+                } else {
+                    piece.style.cursor = 'default';
+                }
+            });
+        }
+        function stopAllTimers() {
+            stopWhiteTimer();
+        }
+        function updateUndoButtonState() {
+            if (gameStarted && game.history().length > 0 && !gameOver) {
+                undoButton.disabled = false;
+                undoButton.style.opacity = 1;
+                undoButton.style.cursor = 'pointer';
+            } else {
+                undoButton.disabled = true;
+                undoButton.style.opacity = 0.5;
+                undoButton.style.cursor = 'not-allowed';
+            }
+        }
+        function disableButtons() {
+            resetButton.disabled = false;
+            drawButton.disabled = true;
+            drawButton.style.opacity = 0.5;
+            drawButton.style.cursor = 'not-allowed';
+            updateUndoButtonState();
+        }
+        function enableButtons() {
+            resetButton.disabled = false;
+            drawButton.disabled = false;
+            drawButton.style.opacity = 1;
+            drawButton.style.cursor = 'pointer';
+            updateUndoButtonState();
+        }
+        function evaluateBoard(boardState) {
+            let score = 0;
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const piece = boardState[i][j];
+                    if (piece) {
+                        const pieceVal = pieceValues[piece.type.toLowerCase()];
+                        let pstVal = 0;
+                        if (Pst[piece.type.toLowerCase()]) {
+                            pstVal = (piece.color === 'w') ? Pst[piece.type.toLowerCase()][i][j] : Pst[piece.type.toLowerCase()][7 - i][j];
+                        }
+                        if (piece.color === 'w') {
+                            score += (pieceVal + pstVal);
+                        } else {
+                            score -= (pieceVal + pstVal);
+                        }
+                    }
+                }
+            }
+            if (game.game_over()) {
+                if (game.in_checkmate()) {
+                    return (game.turn() === 'b') ? 100000 : -100000;
+                }
+                if (game.in_draw()) {
+                    return 0;
+                }
+            }
+            return score;
+        }
+        function minimax(depth, gameInstance, alpha, beta, isMaximizingPlayer) {
+            if (depth === 0 || gameInstance.game_over()) {
+                return evaluateBoard(gameInstance.board());
+            }
+            const possibleMoves = gameInstance.moves({ verbose: true });
+            possibleMoves.sort((a, b) => {
+                const aIsCapture = a.flags.includes('c') || a.flags.includes('e');
+                const bIsCapture = b.flags.includes('c') || b.flags.includes('e');
+                if (aIsCapture && !bIsCapture) return -1;
+                if (!aIsCapture && bIsCapture) return 1;
+                return 0;
+            });
+            if (isMaximizingPlayer) {
+                let maxEval = -Infinity;
+                for (let i = 0; i < possibleMoves.length; i++) {
+                    const move = possibleMoves[i];
+                    gameInstance.move(move);
+                    const evaluation = minimax(depth - 1, gameInstance, alpha, beta, false);
+                    gameInstance.undo();
+                    maxEval = Math.max(maxEval, evaluation);
+                    alpha = Math.max(alpha, evaluation);
+                    if (beta <= alpha) {
+                        break;
+                    }
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (let i = 0; i < possibleMoves.length; i++) {
+                    const move = possibleMoves[i];
+                    gameInstance.move(move);
+                    const evaluation = minimax(depth - 1, gameInstance, alpha, beta, true);
+                    gameInstance.undo();
+                    minEval = Math.min(minEval, evaluation);
+                    beta = Math.min(beta, evaluation);
+                    if (beta <= alpha) {
+                        break;
+                    }
+                }
+                return minEval;
+            }
+        }
+        async function makeAIMove() {
+            if (gameOver || !gameStarted) return;
+            statusElement.innerText = "AI is thinking...";
+            statusElement.classList.remove('text-green-400');
+            statusElement.classList.add('text-blue-400');
+            await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+            const possibleMoves = game.moves({ verbose: true });
+            if (possibleMoves.length === 0) {
+                updateStatus();
+                return;
+            }
+            let bestMove = null;
+            let bestValue = Infinity;
+            const searchDepth = 3;
+            for (let i = 0; i < possibleMoves.length; i++) {
+                const move = possibleMoves[i];
+                game.move(move);
+                const boardValue = minimax(searchDepth - 1, game, -Infinity, Infinity, true);
+                game.undo();
+                if (boardValue < bestValue) {
+                    bestValue = boardValue;
+                    bestMove = move;
+                }
+            }
+            if (bestMove) {
+                game.move(bestMove);
+                whiteTurn = true;
+                renderBoard();
+                if (!gameOver) {
+                    startWhiteTimer();
+                }
+                enableBoardClicks();
+                updateUndoButtonState();
+            } else {
+                console.error("AI could not find a move, but game is not over.");
+                updateStatus();
+            }
+        }
+        function undoMove() {
+            if (!gameStarted || gameOver || game.history().length === 0) {
+                updateUndoButtonState();
+                return;
+            }
+            if (game.turn() === 'w') {
+                game.undo();
+                game.undo();
+            } else {
+                game.undo();
+            }
+            whiteTurn = true;
+            renderBoard();
+            clearHighlights();
+            if (!gameOver) {
+                startWhiteTimer();
+            }
+            enableBoardClicks();
+            updateUndoButtonState();
+        }
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenButton.textContent = 'Exit Fullscreen';
+            } else {
+                fullscreenButton.textContent = 'Go Fullscreen';
+            }
+        });
+        function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+            startGameButton.style.display = 'none';
+            game.reset();
+            selectedSquare = null;
+            whiteTurn = true;
+            gameOver = false;
+            stopAllTimers();
+            whiteTimeRemaining = initialTime;
+            updateTimerDisplay();
+            renderBoard();
+            startWhiteTimer();
+            enableButtons();
+            enableBoardClicks();
+            updateStatus();
+        }
+        function resetGame() {
+            game.reset();
+            selectedSquare = null;
+            whiteTurn = true;
+            gameOver = false;
+            gameStarted = false;
+            stopAllTimers();
+            whiteTimeRemaining = initialTime;
+            updateTimerDisplay();
+            renderBoard();
+            startGameButton.style.display = 'block';
+            updateStatus();
+            disableButtons();
+            disableBoardClicks();
+        }
+        function handleVisibilityChange() {
+            if (!gameStarted || gameOver) {
+                return;
+            }
+            if (document.hidden) {
+                stopAllTimers();
+                pausedTurn = game.turn();
+                statusElement.innerText = "Game Paused (Tab Hidden)";
+                statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-red-400');
+                statusElement.classList.add('text-yellow-400');
+            } else {
+                statusElement.classList.remove('text-yellow-400');
+                if (pausedTurn === 'w') {
+                    whiteTurn = true;
+                    startWhiteTimer();
+                }
+                pausedTurn = null;
+                updateStatus();
+            }
+        }
+        function showDrawOfferModal() {
+            drawOfferModal.style.display = 'flex';
+        }
+        function hideDrawOfferModal() {
+            drawOfferModal.style.display = 'none';
+        }
+        drawButton.addEventListener('click', () => {
+            if (gameStarted && !gameOver) {
+                showDrawOfferModal();
+            }
+        });
+        modalYesButton.addEventListener('click', () => {
+            hideDrawOfferModal();
+            gameOver = true;
+            stopAllTimers();
+            statusElement.innerText = "Game over, draw by agreement!";
+            statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-red-400');
+            statusElement.classList.add('text-yellow-400');
+            disableBoardClicks();
+            disableButtons();
+        });
+        modalNoButton.addEventListener('click', () => {
+            hideDrawOfferModal();
+            updateStatus();
+        });
+        resetButton.addEventListener('click', resetGame);
+        startGameButton.addEventListener('click', startGame);
+        undoButton.addEventListener('click', undoMove);
+        fullscreenButton.addEventListener('click', toggleFullScreen);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                loadingScreen.classList.add('hidden');
+                gameContent.classList.add('visible');
+            }, 3000);
+            renderBoard();
+            updateTimerDisplay();
+            disableButtons();
+            disableBoardClicks();
+            updateStatus();
+        });
+        window.addEventListener('resize', () => {
+            if (window.innerHeight > window.innerWidth) {
+                stopAllTimers();
+                if (gameStarted && !gameOver) {
+                     pausedTurn = game.turn();
+                }
+                statusElement.innerText = "Game Paused (Rotate Device)";
+                statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-red-400');
+                statusElement.classList.add('text-yellow-400');
+            } else {
+                if (gameStarted && !gameOver && pausedTurn) {
+                    if (pausedTurn === 'w') {
+                        startWhiteTimer();
+                    }
+                    pausedTurn = null;
+                    updateStatus();
+                } else if (!gameStarted) {
+                    updateStatus();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
