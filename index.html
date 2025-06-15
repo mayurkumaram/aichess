@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    html, body { /* Added html, body height 100% */
+    html, body {
         height: 100%;
         margin: 0;
         padding: 0;
@@ -18,8 +18,6 @@
         color: #E2E8F0;
         display: flex;
         justify-content: center;
-        /* min-height: 100vh; - Removed */
-        /* overflow: hidden; - Removed */
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
@@ -27,14 +25,14 @@
         -webkit-text-size-adjust: none;
         text-size-adjust: none;
     }
-    #main-content-wrapper { /* New wrapper for scrollable content */
+    #main-content-wrapper {
         display: flex;
         flex-direction: column;
-        min-height: 100vh; /* Ensure it takes full viewport height */
+        min-height: 100vh;
         width: 100vw;
-        overflow-y: auto; /* Enable vertical scrolling */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-        overscroll-behavior-y: contain; /* Prevents bounce scroll, optional */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
     }
     #loading-screen {
         position: fixed;
@@ -105,7 +103,6 @@
     #game-content {
         display: flex;
         width: 100vw;
-        /* min-height: 100vh; - Handled by #main-content-wrapper now */
         flex-direction: column;
         justify-content: space-between;
         align-items: center;
@@ -125,6 +122,7 @@
         align-items: center;
         flex-shrink: 0;
         margin-top: 50px;
+
     }
     .chess-board {
         display: grid;
@@ -315,11 +313,11 @@
         #orientation-message {
             display: none;
         }
-        #main-content-wrapper { /* Adjust for landscape */
+        #main-content-wrapper {
             flex-direction: row;
             justify-content: center;
             align-items: center;
-            overflow-y: hidden; /* No vertical scrolling in landscape */
+            overflow-y: hidden;
         }
         #game-content {
             flex-direction: row;
@@ -456,6 +454,13 @@
             transform: translateY(0);
         }
     }
+@media (orientation: portrait) {
+    #board-container {
+        margin-bottom: 50px;
+
+    }
+}
+
 </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -693,9 +698,6 @@
                 const fromSquare = selectedSquare.dataset.square;
                 const toSquare = squareName;
                 let promotion = 'q';
-                const pieceOnFrom = game.get(fromSquare);
-                if (pieceOnFrom && pieceOnFrom.type === 'p' && pieceOnFrom.color === 'w' && toSquare[1] === '8') {
-                }
                 const move = game.move({
                     from: fromSquare,
                     to: toSquare,
@@ -1040,25 +1042,15 @@
             updateStatus();
         });
         window.addEventListener('resize', () => {
-            // Re-evaluate the orientation logic. The key is to ensure the main-content-wrapper handles scrolling
-            // correctly if the content size exceeds the visible area due to the URL bar.
-            // The orientation message itself might not be needed if scrolling handles the overflow.
-            if (window.innerHeight > window.innerWidth) { // Portrait mode
-                // If the game content is too tall for the portrait screen, scrolling on #main-content-wrapper will activate.
-                // No need to explicitly pause unless it's genuinely a layout breaking issue.
-                // The existing pause logic here might still be useful if the layout truly becomes unplayable in portrait.
-                // However, the main cutting issue should be solved by allowing scroll.
+            if (window.innerHeight > window.innerWidth) {
                 if (gameStarted && !gameOver) {
-                    // This pausing logic might be specific to how you want the game to behave in portrait vs landscape.
-                    // If the game layout is still bad in portrait, this is fine.
-                    // Otherwise, you might not need to pause game on orientation change if scrolling is handled.
                     stopAllTimers();
                     pausedTurn = game.turn();
                     statusElement.innerText = "Game Paused (Adjust device orientation or scroll if needed)";
                     statusElement.classList.remove('text-green-400', 'text-blue-400', 'text-red-400');
                     statusElement.classList.add('text-yellow-400');
                 }
-            } else { // Landscape mode
+            } else {
                 if (gameStarted && !gameOver && pausedTurn) {
                     if (pausedTurn === 'w') {
                         startWhiteTimer();
