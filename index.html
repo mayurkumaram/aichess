@@ -534,8 +534,8 @@
         let whiteTimerInterval;
         let lastMoveTime;
         const pieces = {
-            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
-            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♔'
+            'p': 'â', 'r': 'â', 'n': 'â', 'b': 'â', 'q': 'â', 'k': 'â',
+            'P': 'â', 'R': 'â', 'N': 'â', 'B': 'â', 'Q': 'â'
         };
         const pieceValues = {
             'p': 100, 'n': 320, 'b': 330, 'r': 500, 'q': 900, 'k': 20000
@@ -949,10 +949,12 @@
                 fullscreenButton.textContent = 'Go Fullscreen';
             }
         });
-        function startGame() {
+function startGame() {
             if (gameStarted) return;
             gameStarted = true;
-            startGameButton.style.display = 'none';
+            startGameButton.disabled = true; // Disable the button
+            startGameButton.style.opacity = 0.5; // Make it look disabled
+            startGameButton.style.cursor = 'not-allowed'; // Change cursor
             game.reset();
             selectedSquare = null;
             whiteTurn = true;
@@ -966,7 +968,7 @@
             enableBoardClicks();
             updateStatus();
         }
-        function resetGame() {
+function resetGame() {
             game.reset();
             selectedSquare = null;
             whiteTurn = true;
@@ -976,7 +978,9 @@
             whiteTimeRemaining = initialTime;
             updateTimerDisplay();
             renderBoard();
-            startGameButton.style.display = 'block';
+            startGameButton.disabled = false; // Enable the button
+            startGameButton.style.opacity = 1; // Restore full opacity
+            startGameButton.style.cursor = 'pointer'; // Restore pointer cursor
             updateStatus();
             disableButtons();
             disableBoardClicks();
