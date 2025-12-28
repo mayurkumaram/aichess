@@ -24,3 +24,10 @@ This project is an interactive chess application that lets users play chess agai
 
 👉 https://mayurkumaram.github.io/aichess/  
 Try it out and test the AI in action!
+
+---
+
+## 📌 Author
+
+**Mayur Kumar**  
+Website: https://mayurkumaram.github.io/aichess/ 🌐
